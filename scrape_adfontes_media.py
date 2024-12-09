@@ -24,7 +24,7 @@ from collections import defaultdict
 import pandas as pd
 from bs4 import BeautifulSoup
 
-NUM_PAGES = 8
+NUM_PAGES = 1
 SOURCE_WEB_PAGE = "https://adfontesmedia.com/rankings-by-individual-news-source/"
 
 
@@ -109,7 +109,7 @@ def get_reliability_and_bias_info(rated_sources):
 
     print(f"Extracting reliability and bias scores from {num_sites_2_scrape} sites")
     for site_name, site_url in rated_sources:
-        random_num_seconds = random.randrange(1, 5)
+        random_num_seconds = random.randrange(1, 10)
         print(f"\t- Waiting for {random_num_seconds} seconds so we don't get blocked.")
         time.sleep(random_num_seconds)
         print("\t- Working on:", site_name)
@@ -125,9 +125,11 @@ def get_reliability_and_bias_info(rated_sources):
             temp_info = {}
             for item in html_soup.find_all("p"):
                 rating = item.find("strong")
-            if rating and ":" in rating.get_text():
-                metric_name, metric_score = map(str.strip, rating.get_text().split(":"))
-                temp_info[metric_name.lower()] = float(metric_score)
+                if rating and ":" in rating.get_text():
+                    metric_name, metric_score = map(
+                        str.strip, rating.get_text().split(":")
+                    )
+                    temp_info[metric_name.lower()] = float(metric_score)
             scraped_info[site_name] = temp_info
 
         except Exception as e:
@@ -142,11 +144,12 @@ if __name__ == "__main__":
     for page_num in range(1, NUM_PAGES + 1):
         rated_sources = get_all_rated_sources(page_num)
         scraped_info = get_reliability_and_bias_info(rated_sources)
-        dfs.append(pd.DataFrame.from_dict(scraped_info, orient="index"))
+        temp_df = pd.DataFrame.from_dict(scraped_info, orient="index")
+        dfs.append(temp_df)
 
     scraped_info_df = pd.concat(dfs)
     scraped_info_df = scraped_info_df.rename(columns={"index": "source"})
-    scraped_info_df = scraped_info_df.reset_index(drop=True)
+    scraped_info_df = scraped_info_df.reset_index()
 
     scraped_info_df.to_csv("ad_fontes_media_sources_ratings.csv", index=False)
     print("--- Script Complete ---")
